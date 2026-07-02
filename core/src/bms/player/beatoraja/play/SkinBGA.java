@@ -44,7 +44,8 @@ public class SkinBGA extends SkinObject {
 		if(draw) {
 			final int s = player.getState();
 			player.resource.getBGAManager().prepareBGA(
-					s == BMSPlayer.STATE_PRELOAD || s == BMSPlayer.STATE_PRACTICE || s == BMSPlayer.STATE_READY ? -1
+					s == BMSPlayer.STATE_PRELOAD || s == BMSPlayer.STATE_PRACTICE ||
+					s == BMSPlayer.STATE_WAIT    || s == BMSPlayer.STATE_READY ? -1
 							: player.timer.getNowTime(TIMER_PLAY));
 		}
 	}
