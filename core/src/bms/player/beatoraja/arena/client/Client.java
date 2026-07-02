@@ -22,6 +22,7 @@ public class Client {
     public static ClientState state = new ClientState();
     private static WSClient wsClient = null;
     private static Consumer<Boolean> accepter = null;
+    public static boolean strictHash = true;
 
     public static void connect(String host, String userName) {
         disconnect();

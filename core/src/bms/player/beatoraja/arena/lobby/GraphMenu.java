@@ -155,7 +155,7 @@ public class GraphMenu {
                 values.add(0);
             }
             switch (sortType) {
-                case Score -> values.add(peer.getExScore());
+	    case Score -> values.add((int) Math.floor(peer.getRate() * 10000));
                 case BP -> values.add(peer.getBP());
                 case MaxCombo -> values.add(peer.getMaxCombo());
             }
@@ -193,16 +193,14 @@ public class GraphMenu {
                 double[] rankPos = new double[]{
                         1, 2, 3, 4
                 };
-                Optional<Integer> maxScore = Client.state.getMaxScore();
-                maxScore.ifPresent(limit -> {
-                    rankPos[0] = Math.ceil(limit * 0.666);
-                    rankPos[1] = Math.ceil(limit * 0.777);
-                    rankPos[2] = Math.ceil(limit * 0.888);
-                    rankPos[3] = limit;
-                });
+		rankPos[0] =  666666;
+		rankPos[1] =  777777;
+		rankPos[2] =  888888;
+		rankPos[3] = 1000000;
                 String[] rankLabels = new String[]{"A", "AA", "AAA", "MAX"};
                 ImPlot.setupAxisTicks(ImPlotAxis.Y1, rankPos, rankPos.length, rankLabels);
-                ImPlot.setupAxisLimits(ImPlotAxis.Y1, 0, maxScore.orElse(4), ImPlotCond.Always);
+                ImPlot.setupAxisLimits(ImPlotAxis.Y1, 0, 1000000, ImPlotCond.Always);
+
             } else if (sortType == SortType.MaxCombo) {
                 int maxCombo = Client.state.getMaxCombo().orElse(1);
                 ImPlot.setupAxisLimits(ImPlotAxis.Y1, 0, maxCombo, ImPlotCond.Always);

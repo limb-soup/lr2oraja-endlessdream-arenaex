@@ -4,12 +4,18 @@ import static bms.player.beatoraja.CourseData.CourseDataConstraint.*;
 import static bms.player.beatoraja.skin.SkinProperty.*;
 import static bms.player.beatoraja.SystemSoundManager.SoundType.*;
 
+import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -688,7 +694,31 @@ public class BMSPlayer extends MainState {
 			case STATE_WAIT -> {
 				if (!firedWaitingReady) {
 					firedWaitingReady = true;
-					Client.send(ClientToServer.CTS_SELECTED_BMS, createSelectedBMSMessage(model, playinfo.randomoptionseed, playinfo.randomoption).pack());
+					MessageDigest md5digest, sha256digest;
+					int digests = 0;
+					if (model.getMD5() == null || model.getMD5().equals(""))try {
+					    md5digest = MessageDigest.getInstance("MD5");
+					    sha256digest = MessageDigest.getInstance("SHA-256");
+					    final int buf_size = 10000;
+					    byte[] buf = new byte[buf_size];
+					    DigestInputStream ds = new DigestInputStream(new DigestInputStream(new FileInputStream(model.getPath()), md5digest), sha256digest);
+					    while(ds.read(buf, 0, buf_size) > 0);
+					    model.setMD5(BMSDecoder.convertHexString(md5digest.digest()));
+					    model.setSHA256(BMSDecoder.convertHexString(sha256digest.digest()));
+					    Client.send(ClientToServer.CTS_SELECTED_BMS,
+							createSelectedBMSMessage(model, playinfo.randomoptionseed,
+										 playinfo.randomoption, 1).pack()); // send sha256
+					    Client.send(ClientToServer.CTS_SELECTED_BMS,
+							createSelectedBMSMessage(model, playinfo.randomoptionseed,
+										 playinfo.randomoption, 0).pack()); // send md5
+					    digests = 1;
+					} catch (NoSuchAlgorithmException | IOException e1){
+					}
+					if (digests == 0){
+					    Client.send(ClientToServer.CTS_SELECTED_BMS,
+							createSelectedBMSMessage(model, playinfo.randomoptionseed,
+										 playinfo.randomoption, 0).pack()); // send md5
+					}
 					Client.send(ClientToServer.CTS_LOADING_COMPLETE, "".getBytes());
 					Client.acceptNextAllReady((allReady) -> this.allReady = allReady);
 				}
@@ -1273,12 +1303,22 @@ public class BMSPlayer extends MainState {
 		return rhythm != null ? rhythm.getNowQuarterNoteTime() : 0;
 	}
 
-	private SelectedBMSMessage createSelectedBMSMessage(BMSModel model, long randomSeed, int randomOption) {
+    private SelectedBMSMessage createSelectedBMSMessage(BMSModel model, long randomSeed, int randomOption) {
 		// TODO: items are not supported.
 		// NOTE: We need to convert a Raja seed to LR2 seed
 		// NOTE: Gauge isn't synced everytime, considering 99% raja users are using auto-shift, there's no reason
 		// to sync an initial gauge value. Also LR2 has a different gauge system definition, it's tedious to handle
 		// the assist clear & ex-hard etc
 		return new SelectedBMSMessage(LR2RandomPattern.fromRajaToLR2Seed(randomSeed), model.getMD5(), model.getTitle(), model.getArtist(), randomOption, 0, false);
+	}
+    private SelectedBMSMessage createSelectedBMSMessage(BMSModel model, long randomSeed, int randomOption, int use_SHA256) {
+		// TODO: items are not supported.
+		// NOTE: We need to convert a Raja seed to LR2 seed
+		// NOTE: Gauge isn't synced everytime, considering 99% raja users are using auto-shift, there's no reason
+		// to sync an initial gauge value. Also LR2 has a different gauge system definition, it's tedious to handle
+		// the assist clear & ex-hard etc
+	return new SelectedBMSMessage(LR2RandomPattern.fromRajaToLR2Seed(randomSeed),
+				      (use_SHA256 != 0) ? model.getSHA256() : model.getMD5(),
+				      model.getTitle(), model.getArtist(), randomOption, 0, false);
 	}
 }
