@@ -155,7 +155,9 @@ public class GraphMenu {
                 values.add(0);
             }
             switch (sortType) {
-	    case Score -> values.add((int) Math.floor(peer.getRate() * 10000));
+	    case Score -> values.add((peer.getTotalNotes() > 0) ?
+				     (int) Math.floor(peer.getExScore() * 500000.0 / peer.getTotalNotes()) :
+				     (int) Math.floor(peer.getRate() * 10000));
                 case BP -> values.add(peer.getBP());
                 case MaxCombo -> values.add(peer.getMaxCombo());
             }

@@ -1309,7 +1309,7 @@ public class BMSPlayer extends MainState {
 		// NOTE: Gauge isn't synced everytime, considering 99% raja users are using auto-shift, there's no reason
 		// to sync an initial gauge value. Also LR2 has a different gauge system definition, it's tedious to handle
 		// the assist clear & ex-hard etc
-		return new SelectedBMSMessage(LR2RandomPattern.fromRajaToLR2Seed(randomSeed), model.getMD5(), model.getTitle(), model.getArtist(), randomOption, 0, false);
+	return new SelectedBMSMessage(LR2RandomPattern.fromRajaToLR2Seed(randomSeed), model.getMD5(), model.getTitle(), model.getArtist(), model.getTotalNotes(), randomOption, 0, false);
 	}
     private SelectedBMSMessage createSelectedBMSMessage(BMSModel model, long randomSeed, int randomOption, int use_SHA256) {
 		// TODO: items are not supported.
@@ -1319,6 +1319,6 @@ public class BMSPlayer extends MainState {
 		// the assist clear & ex-hard etc
 	return new SelectedBMSMessage(LR2RandomPattern.fromRajaToLR2Seed(randomSeed),
 				      (use_SHA256 != 0) ? model.getSHA256() : model.getMD5(),
-				      model.getTitle(), model.getArtist(), randomOption, 0, false);
+				      model.getTitle(), model.getArtist(), model.getTotalNotes(), randomOption, 0, false);
 	}
 }
