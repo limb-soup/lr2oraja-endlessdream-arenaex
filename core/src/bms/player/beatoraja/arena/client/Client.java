@@ -23,6 +23,7 @@ public class Client {
     private static WSClient wsClient = null;
     private static Consumer<Boolean> accepter = null;
     public static boolean strictHash = true;
+    public static int acceptTransfer = 0;
 
     public static void connect(String host, String userName) {
         disconnect();

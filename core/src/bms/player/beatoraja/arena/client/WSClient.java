@@ -191,6 +191,8 @@ public class WSClient extends WebSocketClient {
 	    switch(data[3] >>> 4){
 	    case 0x0:{
 		// begin song download from server
+		if (Client.acceptTransfer != 1) return;
+		Client.acceptTransfer = 0;
 		int fileSize = 0;
 		fileSize += data[0] & 0xFF;
 		fileSize += (int)(data[1] & 0xFF) << 8;
@@ -199,6 +201,7 @@ public class WSClient extends WebSocketClient {
 		downloadBuf = new byte[fileSize];
 		downloadBufIndex = 0;
 		if (downloadBuf.length != downloadBufIndex){
+		    Client.acceptTransfer = 2;
 		    byte[] dat = new byte[5];
 		    dat[0] = (byte) ClientToServer.CTS_FILE_TRANSFER.getValue();
 		    dat[1] = (byte) downloadBufIndex;
@@ -208,11 +211,12 @@ public class WSClient extends WebSocketClient {
 		    dat[4] |= 0x10;
 		    super.send(dat);
 		}
-
 		return;
 	    }
 	    case 0x1:{
 		// send song directory to server
+		if (Client.acceptTransfer != -1) return;
+		Client.acceptTransfer = 0;
 		if (Client.state.getCurrentSongData() == null){
 		    return;
 		}
@@ -273,6 +277,7 @@ public class WSClient extends WebSocketClient {
 		return;
 	    }
 	    case 0x2:{	// receive partial segment from server
+		if (Client.acceptTransfer != 2) return;
 		int fileSize = 0;
 		fileSize += data[0] & 0xFF;
 		fileSize += (int)(data[1] & 0xFF) << 8;
@@ -282,6 +287,7 @@ public class WSClient extends WebSocketClient {
 		    System.out.println("Error in segment length");
 		    System.out.println("index " + downloadBufIndex + ", segment  " + fileSize + ", buffer length " +
 				       downloadBuf.length + ", message length " + data.length + 4);
+		    Client.acceptTransfer = 0;
 		    return;
 		}
 		System.arraycopy(data, 4, downloadBuf, downloadBufIndex, fileSize);
@@ -297,6 +303,8 @@ public class WSClient extends WebSocketClient {
 		return;
 	    }
 	    case 0x3:{	// receive final segment from server
+		if (Client.acceptTransfer != 2) return;
+		Client.acceptTransfer = 0;
 		int fileSize = 0;
 		fileSize += data[0] & 0xFF;
 		fileSize += (int)(data[1] & 0xFF) << 8;

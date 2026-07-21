@@ -236,6 +236,12 @@ public class Lobby {
         String r = inputBuf.get().trim();
         if (!r.isEmpty()) {
             addToLogWithUser(r, Client.state.getRemoteId());
+	    if(r.equals("/bms_dl")){
+		Client.acceptTransfer = 1;
+	    }
+	    else if (r.equals("/bms_send")){
+		Client.acceptTransfer = -1;
+	    }
             Client.send(ClientToServer.CTS_MESSAGE, r.getBytes());
         }
         inputBuf.clear();
