@@ -18,6 +18,7 @@ import java.util.Optional;
 
 public class GraphMenu {
     enum SortType {
+	Rate,
         Score,
         BP,
         MaxCombo
@@ -33,6 +34,7 @@ public class GraphMenu {
             // TODO: items::Render();
             if (Client.connected.get() && !Client.state.getPeers().isEmpty()) {
                 List<Peer> sortedPeers = Client.state.getPeers().values().stream().sorted((lhs, rhs) -> switch (sortType) {
+		    case Rate -> (int) Math.floor(1000 * (rhs.getRate() - lhs.getRate()));
                     case Score -> rhs.getExScore() - lhs.getExScore();
                     case BP -> rhs.getBP() - lhs.getBP();
                     case MaxCombo -> rhs.getMaxCombo() - lhs.getMaxCombo();
@@ -46,6 +48,13 @@ public class GraphMenu {
                     List<String> labels = new ArrayList<>();
                     List<Double> positions = new ArrayList<>();
                     if (ImGui.beginTabBar("##TabsGraph")) {
+			if (ImGui.beginTabItem("Rate")) {
+                            sortType = SortType.Rate;
+                            prepareData(values, labels, positions, sortedPeers, sortType);
+                            displayGraph(values, labels, positions, sortedPeers, sortType);
+                            ImGui.endTabItem();
+                        }
+
                         if (ImGui.beginTabItem("Score")) {
                             sortType = SortType.Score;
                             prepareData(values, labels, positions, sortedPeers, sortType);
@@ -155,9 +164,10 @@ public class GraphMenu {
                 values.add(0);
             }
             switch (sortType) {
-	    case Score -> values.add((peer.getTotalNotes() > 0) ?
+	    case Rate -> values.add((peer.getTotalNotes() > 0) ?
 				     (int) Math.floor(peer.getExScore() * 500000.0 / peer.getTotalNotes()) :
 				     (int) Math.floor(peer.getRate() * 10000));
+	    case Score -> values.add(peer.getExScore());
                 case BP -> values.add(peer.getBP());
                 case MaxCombo -> values.add(peer.getMaxCombo());
             }
@@ -178,6 +188,7 @@ public class GraphMenu {
         }
 
         String yLabel = switch (sortType) {
+	case Rate -> "Rate";
             case Score -> "Score";
             case BP -> "BP";
             case MaxCombo -> "Max Combo";
@@ -191,7 +202,7 @@ public class GraphMenu {
             }
             String[] labelsArray = labels.toArray(new String[0]);
             ImPlot.setupAxisTicks(ImPlotAxis.X1, positionsArray, labels.size(), labelsArray);
-            if (sortType == SortType.Score) {
+            if (sortType == SortType.Rate) {
                 double[] rankPos = new double[]{
                         1, 2, 3, 4
                 };
@@ -202,8 +213,21 @@ public class GraphMenu {
                 String[] rankLabels = new String[]{"A", "AA", "AAA", "MAX"};
                 ImPlot.setupAxisTicks(ImPlotAxis.Y1, rankPos, rankPos.length, rankLabels);
                 ImPlot.setupAxisLimits(ImPlotAxis.Y1, 0, 1000000, ImPlotCond.Always);
-
-            } else if (sortType == SortType.MaxCombo) {
+            } else if (sortType == SortType.Score){
+		double[] rankPos = new double[]{
+		    1, 2, 3, 4
+                };
+                Optional<Integer> maxScore = Client.state.getMaxScore();
+                maxScore.ifPresent(limit -> {
+			rankPos[0] = Math.ceil(limit * 0.666);
+			rankPos[1] = Math.ceil(limit * 0.777);
+			rankPos[2] = Math.ceil(limit * 0.888);
+			rankPos[3] = limit;
+		    });
+                String[] rankLabels = new String[]{"A", "AA", "AAA", "MAX"};
+                ImPlot.setupAxisTicks(ImPlotAxis.Y1, rankPos, rankPos.length, rankLabels);
+                ImPlot.setupAxisLimits(ImPlotAxis.Y1, 0, maxScore.orElse(4), ImPlotCond.Always);
+	    } else if (sortType == SortType.MaxCombo) {
                 int maxCombo = Client.state.getMaxCombo().orElse(1);
                 ImPlot.setupAxisLimits(ImPlotAxis.Y1, 0, maxCombo, ImPlotCond.Always);
             }
