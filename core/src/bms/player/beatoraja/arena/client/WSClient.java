@@ -86,6 +86,11 @@ public class WSClient extends WebSocketClient {
         }
     }
 
+    private void cleanDownload(){
+	downloadBuf = null;
+	downloadBufIndex = 0;
+    }
+
     private void parsePacket(ByteBuffer bytes) throws IOException {
         char id = ((char) bytes.get());
         ServerToClient ev = ServerToClient.from(id);
@@ -200,17 +205,14 @@ public class WSClient extends WebSocketClient {
 		fileSize += (int)(data[3] & 0x03) << 24;
 		downloadBuf = new byte[fileSize];
 		downloadBufIndex = 0;
-		if (downloadBuf.length != downloadBufIndex){
-		    Client.acceptTransfer = 2;
-		    byte[] dat = new byte[5];
-		    dat[0] = (byte) ClientToServer.CTS_FILE_TRANSFER.getValue();
-		    dat[1] = (byte) downloadBufIndex;
-		    dat[2] = (byte) (downloadBufIndex >>> 8);
-		    dat[3] = (byte) (downloadBufIndex >>> 16);
-		    dat[4] = (byte) (downloadBufIndex >>> 24);
-		    dat[4] |= 0x10;
-		    super.send(dat);
-		}
+		Client.acceptTransfer = 2;
+		byte[] dat = new byte[5];
+		dat[0] = (byte) ClientToServer.CTS_FILE_TRANSFER.getValue();
+		dat[1] = 0;
+		dat[2] = 0;
+		dat[3] = 0;
+		dat[4] = 0x10;
+		super.send(dat);
 		return;
 	    }
 	    case 0x1:{
@@ -277,7 +279,7 @@ public class WSClient extends WebSocketClient {
 		return;
 	    }
 	    case 0x2:{	// receive partial segment from server
-		if (Client.acceptTransfer != 2) return;
+		if (Client.acceptTransfer != 2 || downloadBuf == null) { cleanDownload(); return; }
 		int fileSize = 0;
 		fileSize += data[0] & 0xFF;
 		fileSize += (int)(data[1] & 0xFF) << 8;
@@ -288,6 +290,7 @@ public class WSClient extends WebSocketClient {
 		    System.out.println("index " + downloadBufIndex + ", segment  " + fileSize + ", buffer length " +
 				       downloadBuf.length + ", message length " + data.length + 4);
 		    Client.acceptTransfer = 0;
+		    cleanDownload();
 		    return;
 		}
 		System.arraycopy(data, 4, downloadBuf, downloadBufIndex, fileSize);
@@ -303,7 +306,7 @@ public class WSClient extends WebSocketClient {
 		return;
 	    }
 	    case 0x3:{	// receive final segment from server
-		if (Client.acceptTransfer != 2) return;
+		if (Client.acceptTransfer != 2 || downloadBuf == null) { cleanDownload(); return; }
 		Client.acceptTransfer = 0;
 		int fileSize = 0;
 		fileSize += data[0] & 0xFF;
@@ -313,6 +316,7 @@ public class WSClient extends WebSocketClient {
 		if (data.length != fileSize + 4 || downloadBufIndex + fileSize != downloadBuf.length){
 		    System.out.println("index " + downloadBufIndex + ", segment  " + fileSize + ", buffer length " +
 				       downloadBuf.length + ", message length " + data.length + 4);
+		    cleanDownload();
 		    return;
 		}
 		System.arraycopy(data, 4, downloadBuf, downloadBufIndex, fileSize);
@@ -367,6 +371,7 @@ public class WSClient extends WebSocketClient {
 			}
 		    });
 		Lobby.addToLog(String.format("bms download complete"));
+		cleanDownload();
 		return;
 	    }
 	    case 0x4:
